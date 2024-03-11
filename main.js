@@ -34,18 +34,10 @@ cube.position.set( 3, 0, 0 );
 scene.add( cube );
 
 const builder = new TreeGeometryBuilder();
-const counts = builder.getCounts();
-const vertexData = {
-    position: new Float32Array(3 * counts.corners),
-    normal: new Float32Array(3 * counts.corners),
-};
-builder.fillAttributes(vertexData);
-
-const treeGeo = new InstancedBufferGeometry();
+const treeGeo = builder.createGeometry();
 treeGeo.instanceCount = 10;
-treeGeo.setAttribute( 'position', new BufferAttribute( vertexData.position, 3 ) );
-treeGeo.setAttribute( 'normal', new BufferAttribute( vertexData.normal, 3 ) );
 const treeMat = new TreeMaterial();
+treeMat.vertexColors = true;
 const mesh = new Mesh( treeGeo, treeMat );
 scene.add( mesh );
 

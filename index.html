@@ -1,66 +1,62 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf8" />
-        <title>Polyworld</title>
-        <link href="style.css" type="text/css" rel="stylesheet" />
-    </head>
+	<head>
+		<meta charset="utf8" />
+		<title>Polyworld</title>
+		<link href="style.css" type="text/css" rel="stylesheet" />
+	</head>
 
-    <body>
-        <script id="vertexShader" type="x-shader/x-vertex">
-
-			precision mediump float;
-			precision mediump int;
-
-			uniform mat4 modelViewMatrix;
-			uniform mat4 projectionMatrix;
-
-			attribute vec3 position;
-			attribute vec4 color;
-
-			varying vec3 vPosition;
-			varying vec4 vColor;
-
-			void main()	{
-
-				vPosition = position;
-				vColor = color;
-
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
-			}
-
-		</script>
-
-		<script id="fragmentShader" type="x-shader/x-fragment">
-
-			precision mediump float;
-			precision mediump int;
+	<body>
+		<script id="injectAfterCommon" type="x-shader/x-vertex">
 
 			uniform float time;
 
-			varying vec3 vPosition;
-			varying vec4 vColor;
+			attribute float radius;
+			attribute vec2 height;
 
-			void main()	{
-
-				vec4 color = vec4( vColor );
-				color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
-
-				gl_FragColor = color;
-
+			float rand31(vec3 seed1, float seed2) {
+				return rand(vec2(
+					rand(seed1.xy),
+					rand(vec2(seed1.z, seed2))
+				));
 			}
 
 		</script>
 
-        <script type="importmap">
-        {
-            "imports": {
-                "three": "./three.module.min.js",
-                "three/addons/": "./three/addons/"
-            }
-        }
-        </script>
-        <script type="module" src="main.js"></script>
-    </body>
+		<script id="injectAfterBeginVertex" type="x-shader/x-vertex">
+
+			//transformed.x += sin(time) * transformed.y + float(gl_InstanceID) * 3.0;
+
+			// Radius
+			transformed.xz *= radius;
+
+			// Instance transformation
+			transformed.x += float(gl_InstanceID) * 3.0;
+
+			// Noise
+			vec3 offset = vec3(
+				rand31(transformed.xyz, 0.5 / 3.0),
+				rand31(transformed.xyz, 1.5 / 3.0),
+				rand31(transformed.xyz, 2.5 / 3.0)
+			) - 0.5;
+			transformed.xyz += normalize(offset) * 0.1 * radius;
+
+		</script>
+
+		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
+
+			vColor *= mix(1.0, 0.5, height.y);
+
+		</script>
+
+		<script type="importmap">
+		{
+			"imports": {
+				"three": "./three.module.min.js",
+				"three/addons/": "./three/addons/"
+			}
+		}
+		</script>
+		<script type="module" src="main.js"></script>
+	</body>
 </html>

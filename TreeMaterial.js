@@ -30,8 +30,8 @@ export class TreeMaterial extends MeshStandardMaterial {
         time: { value: 0.0 },
     };
 
-    constructor() {
-        super( { color: 0xff8800 } );
+    constructor(opts) {
+        super(opts);
 
         this.onBeforeCompile = (shader) => {
             // Patching from https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderLib/meshphysical.glsl.js
@@ -39,17 +39,27 @@ export class TreeMaterial extends MeshStandardMaterial {
                 shader.uniforms[key] = entry;
             }
 
+            const injectAfterCommon = document.getElementById('injectAfterCommon').textContent;
+            const injectAfterBeginVertex = document.getElementById('injectAfterBeginVertex').textContent;
+            const injectAfterColorVertex = document.getElementById('injectAfterColorVertex').textContent;
+
             shader.vertexShader = shader.vertexShader
                 .replace(
                     `#include <common>`,
                     `#include <common>
-                    uniform float time;
+                    ${injectAfterCommon}
+                    `
+                )
+                .replace(
+                    `#include <color_vertex>`,
+                    `#include <color_vertex>
+                    ${injectAfterColorVertex}
                     `
                 )
                 .replace(
                     `#include <begin_vertex>`,
                     `#include <begin_vertex>
-                    transformed.x += sin(time) * transformed.y + float(gl_InstanceID) * 3.0;
+                    ${injectAfterBeginVertex}
                     `
                 );
 
