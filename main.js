@@ -31,7 +31,7 @@ const geometry = new BoxGeometry( 1, 1, 1 );
 const material = new MeshStandardMaterial( { color: 0x00ff00 } );
 const cube = new Mesh( geometry, material );
 cube.position.set( 3, 0, 0 );
-scene.add( cube );
+//scene.add( cube );
 
 const builder = new TreeGeometryBuilder();
 const treeGeo = builder.createGeometry();
@@ -39,10 +39,12 @@ treeGeo.instanceCount = 10;
 const treeMat = new TreeMaterial();
 treeMat.vertexColors = true;
 const mesh = new Mesh( treeGeo, treeMat );
+mesh.position.set( -14, 0, 0 )
 scene.add( mesh );
 
 
-camera.position.set( -1, 2, 5 );
+const s = 4.0;
+camera.position.set( -1 * s, 2 * s, 5 * s );
 controls.update();
 
 const keyLight = new DirectionalLight( 0xffffff, 1.5 );

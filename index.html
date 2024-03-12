@@ -9,10 +9,49 @@
 	<body>
 		<script id="injectAfterCommon" type="x-shader/x-vertex">
 
+			
+			struct TreeFloorConfig {
+                vec3 color;
+				float height;
+                float bottomRadius;
+                float topRadius;
+
+                // Sum of all previous floor's height
+				float offset;
+			};
+
+			/**
+			 * A tree is composed of a stacking of "floors" (either trunk or foilage elements)
+			 */
+			struct TreeConfig {
+				TreeFloorConfig floors[4];
+			};
+
+			/**
+			 * Trees from a family are all the possible interpolations between 'presetCount' different presets.
+			 */
+			struct TreeFamilyConfig {
+				TreeConfig presets[2];
+				uint presetCount;
+			};
+
+			TreeFloorConfig mixTreeFloorConfig(TreeFloorConfig a, TreeFloorConfig b, float fac) {
+				return TreeFloorConfig(
+					mix(a.color, b.color, fac),
+					mix(a.height, b.height, fac),
+					mix(a.bottomRadius, b.bottomRadius, fac),
+					mix(a.topRadius, b.topRadius, fac),
+					mix(a.offset, b.offset, fac)
+				);
+			}
+
 			uniform float time;
+			uniform float noiseLevel;
+			uniform TreeFamilyConfig treeFamilyConfig;
 
 			attribute float radius;
 			attribute vec2 height;
+			attribute uint floorIndex;
 
 			float rand31(vec3 seed1, float seed2) {
 				return rand(vec2(
@@ -23,15 +62,30 @@
 
 		</script>
 
+		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
+
+			TreeFloorConfig floorConfigA = treeFamilyConfig.presets[0].floors[floorIndex];
+			TreeFloorConfig floorConfigB = treeFamilyConfig.presets[1].floors[floorIndex];
+			float instanceFac = (float(gl_InstanceID) + 0.5) / float(10);
+			TreeFloorConfig floorConfig = mixTreeFloorConfig(floorConfigA, floorConfigB, instanceFac);
+
+			vColor.rgb = floorConfig.color;
+			vColor *= mix(1.0, 0.5, position.y);
+
+		</script>
+
 		<script id="injectAfterBeginVertex" type="x-shader/x-vertex">
 
-			//transformed.x += sin(time) * transformed.y + float(gl_InstanceID) * 3.0;
-
 			// Radius
-			transformed.xz *= radius;
+			float radius = mix(floorConfig.bottomRadius, floorConfig.topRadius, position.y);
+			float radiusFac = length(position.xz);
+			transformed.xz *= radiusFac * radius;
 
 			// Instance transformation
 			transformed.x += float(gl_InstanceID) * 3.0;
+
+			transformed.y *= floorConfig.height;
+			transformed.y += floorConfig.offset;
 
 			// Noise
 			vec3 offset = vec3(
@@ -39,13 +93,7 @@
 				rand31(transformed.xyz, 1.5 / 3.0),
 				rand31(transformed.xyz, 2.5 / 3.0)
 			) - 0.5;
-			transformed.xyz += normalize(offset) * 0.1 * radius;
-
-		</script>
-
-		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
-
-			vColor *= mix(1.0, 0.5, height.y);
+			transformed.xyz += normalize(offset) * noiseLevel * radius;
 
 		</script>
 
