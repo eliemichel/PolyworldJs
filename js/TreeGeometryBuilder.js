@@ -20,6 +20,9 @@ export class TreeGeometryBuilder {
                 {
                     sideCount: 6,
                 },
+                {
+                    sideCount: 6,
+                },
             ],
             ...params
         };

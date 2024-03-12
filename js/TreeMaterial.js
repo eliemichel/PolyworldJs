@@ -5,6 +5,27 @@ import {
     Vector3,
 } from 'three';
 
+// Must match the size of TreeConfig::floors in the shaders
+const MAX_FLOOR_COUNT = 5;
+// Must match the size of TreeFamilyConfig::presets in the shaders
+const MAX_PRESET_COUNT = 2;
+
+function createTreeFloorConfig() {
+    return {
+        color: new Vector3(0.0, 0.0, 0.0),
+        height: 0.0,
+        bottomRadius: 0.0,
+        topRadius: 0.0,
+        offset: 0.0,
+    }
+}
+
+function createTreeConfig() {
+    return {
+        floors: Array.from({ length: MAX_PRESET_COUNT }, createTreeFloorConfig),
+    }
+}
+
 export class TreeMaterial extends MeshStandardMaterial {
     uniforms = {
         time: { value: 0.0 },
@@ -99,6 +120,12 @@ export class TreeMaterial extends MeshStandardMaterial {
                                 bottomRadius: 0.5,
                                 topRadius: 0.05,
                             },
+                            {
+                                color: new Vector3(0.6, 0.9, 1.0),
+                                height: 0.6,
+                                bottomRadius: 0.5,
+                                topRadius: 0.05,
+                            },
                         ]
                     }
                 ],
@@ -106,7 +133,13 @@ export class TreeMaterial extends MeshStandardMaterial {
             }
         };
 
+        while (this.uniforms.treeFamilyConfig.value.presets.length < MAX_PRESET_COUNT) {
+            this.uniforms.treeFamilyConfig.value.presets.push(createTreeConfig());
+        }
         for (const preset of this.uniforms.treeFamilyConfig.value.presets) {
+            while (preset.floors.length < MAX_FLOOR_COUNT) {
+                preset.floors.push(createTreeFloorConfig());
+            }
             let offset = 0;
             for (const fl of preset.floors) {
                 fl.offset = offset;
