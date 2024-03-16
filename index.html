@@ -13,17 +13,43 @@
 			 * A tree is composed of a stacking of "floors" (either trunk or foilage elements)
 			 */
 			struct TreeConfig {
+				// Number of cylinders in the crown (i.e., foilage part of the tree)
 				uint crownFloorCount;
+
+				// Overall height of the tree
 				float height;
+
+				// Randomness in the crown vertices
 				float crownRandomness;
+
+				// Radius of the bottom of the bottom-most crown floor
 				float crownBaseRadius;
+
+				// If set to 1, the tree looks like a cone. If less than 1, top part of
+				// each crown floor is shrinked so it looks more like a pine tree.
 				float crownShrinkFactor;
+
+				// Height of the trunk, which must not be more than the overall height
 				float trunkHeight;
+
+				// Radius of the trunk
 				float trunkRadius;
+
+				// Randomness in the trunk vertices
 				float trunkRandomness;
+
+				// Color of the trunk
 				vec3 trunkColor;
+
+				// Colors of the crown floors, from bottom to top
 				vec3 crownColors[4];
+
+				// Bend factor along each axis
 				vec3 bend;
+
+				// How much floor elements overshoot in height, where 0 means no overshoot
+				// and 1 means doubling the height.
+				float overshoot;
 			};
 
 			/**
@@ -51,7 +77,8 @@
 						mix(a.crownColors[2], b.crownColors[2], vec3(fac)),
 						mix(a.crownColors[3], b.crownColors[3], vec3(fac))
 					),
-					mix(a.bend, b.bend, vec3(fac))
+					mix(a.bend, b.bend, vec3(fac)),
+					mix(a.overshoot, b.overshoot, fac)
 				);
 			}
 
@@ -75,7 +102,7 @@
 				if (isTrunk) {
 					return TreeFloorConfig(
 						config.trunkColor,
-						config.trunkHeight,
+						config.trunkHeight * config.overshoot,
 						config.trunkRadius,
 						config.trunkRadius,
 						config.trunkRandomness,
@@ -89,7 +116,7 @@
 					float crownHeight = config.height - config.trunkHeight;
 					return TreeFloorConfig(
 						config.crownColors[colorIndex],
-						crownHeight / float(config.crownFloorCount),
+						crownHeight / float(config.crownFloorCount) * config.overshoot,
 						mix(config.crownBaseRadius, 0.0, crownBottomFac),
 						mix(config.crownBaseRadius, 0.0, crownTopFac) * config.crownShrinkFactor,
 						config.crownRandomness,
@@ -108,7 +135,6 @@
 			}
 
 			uniform float time;
-			uniform float noiseLevel;
 			uniform TreeFamilyConfig treeFamilyConfig;
 
 			attribute float radius;
@@ -122,6 +148,65 @@
 				));
 			}
 
+			mat2 rotate2(float angle) {
+				float c = cos(angle);
+				float s = sin(angle);
+				return mat2(c, s, -s, c);
+			}
+
+			mat4 rotateXZ(float angle) {
+				float c = cos(angle);
+				float s = sin(angle);
+				return mat4(
+					c, 0.0, s, 0.0,
+					0.0, 1.0, 0.0, 0.0,
+					-s, 0.0, c, 0.0,
+					0.0, 0.0, 0.0, 1.0
+				);
+			}
+
+			// Bend on a single axis
+			mat4 computeBendMatrixXY(uint crownFloorIndex, float bendFactor, float crownFloorHeight) {
+				vec3 bendOffset = vec3(0.0);
+				/* Iterative version (easier to read):
+				for (uint i = 1u ; i <= crownFloorIndex ; ++i) {
+					float angle = float(i) * bendFactor;
+					bendOffset.xy += crownFloorHeight * vec2(sin(angle), cos(angle));
+				}
+				*/
+				// Equivalent analytic version (faster to evaluate I think):
+				float n = float(crownFloorIndex + 1u);
+				float dividend = sin(bendFactor / 2.0);
+				if (abs(bendFactor) > 1e-6) {
+					bendOffset.xy += crownFloorHeight * vec2(
+						-sin(bendFactor * (1.0 - n) / 2.0) * sin(n * bendFactor / 2.0) / sin(bendFactor / 2.0),
+						0.5 * cos(bendFactor / 2.0) * sin(bendFactor * n) / sin(bendFactor / 2.0) - 0.5 * (1.0 + cos(bendFactor * n))
+					);
+				} else {
+					bendOffset.xy += crownFloorHeight * vec2(0.0, n - 1.0);
+				}
+				float bendAngle = n * bendFactor;
+				float c = cos(bendAngle);
+				float s = sin(bendAngle);
+				return transpose(mat4(
+					 c, s, 0.0, bendOffset.x,
+					-s, c, 0.0, bendOffset.y,
+					0.0, 0.0, 1.0, bendOffset.z,
+					0.0, 0.0, 0.0, 1.0
+				));
+			}
+
+			// Bend on all axes
+			mat4 computeBendMatrix(uint crownFloorIndex, vec3 bend, float crownFloorHeight) {
+				float angle = atan(bend.z, bend.x);
+				return (
+					rotateXZ(angle) *
+					computeBendMatrixXY(crownFloorIndex, length(bend.xz), crownFloorHeight) *
+					rotateXZ(-angle) *
+					rotateXZ(bend.y * float(crownFloorIndex + 1u))
+				);
+			}
+
 		</script>
 
 		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
@@ -132,6 +217,16 @@
 			TreeConfig config = mixTreeConfig(configA, configB, instanceFac);
 
 			TreeFloorConfig floorConfig = getFloorConfig(config, floorIndex);
+
+			mat2 instanceRotation = rotate2(6.28 * rand(vec2(float(gl_InstanceID) * 0.01, 0.5)));
+
+			mat4 bendMatrix = mat4(1.0);
+			if (floorIndex > 0u) {
+				float crownHeight = config.height - config.trunkHeight;
+				float crownFloorHeight = crownHeight / float(config.crownFloorCount);
+				bendMatrix = computeBendMatrix(floorIndex - 1u, config.bend, crownFloorHeight);
+				bendMatrix[3].y += config.trunkHeight;
+			}
 
 			vColor.rgb = floorConfig.color;
 			vColor *= mix(1.0, 0.5, position.y);
@@ -145,19 +240,35 @@
 			float radiusFac = length(position.xz);
 			transformed.xz *= radiusFac * radius;
 
+			// Height
+			transformed.y *= floorConfig.height;
+
+			// Noise (must be before animation)
+			vec3 offset = vec3(
+				rand31(transformed.xyz + vec3(float(gl_InstanceID) * 0.1, floorConfig.offset, 0.0), 0.5 / 3.0),
+				rand31(transformed.xyz + vec3(float(gl_InstanceID) * 0.1, floorConfig.offset, 0.0), 1.5 / 3.0),
+				rand31(transformed.xyz + vec3(float(gl_InstanceID) * 0.1, floorConfig.offset, 0.0), 2.5 / 3.0)
+			) - 0.5;
+
+			// Bend + vertical offset
+			transformed = (bendMatrix * vec4(transformed, 1.0)).xyz;
+
 			// Instance transformation
+			transformed.xz = instanceRotation * transformed.xz;
 			transformed.x += float(gl_InstanceID) * 3.0;
 
-			transformed.y *= floorConfig.height;
-			transformed.y += floorConfig.offset;
-
 			// Noise
-			vec3 offset = vec3(
-				rand31(transformed.xyz, 0.5 / 3.0),
-				rand31(transformed.xyz, 1.5 / 3.0),
-				rand31(transformed.xyz, 2.5 / 3.0)
-			) - 0.5;
-			transformed.xyz += normalize(offset) * noiseLevel * radius;
+			transformed.xyz += normalize(offset) * floorConfig.randomness * radius;
+
+		</script>
+
+		<script id="injectAfterBeginNormal" type="x-shader/x-vertex">
+
+			// Bend
+			objectNormal = mat3(bendMatrix) * objectNormal;
+
+			// Instance transformation
+			objectNormal.xz = instanceRotation * objectNormal.xz;
 
 		</script>
 

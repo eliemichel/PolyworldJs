@@ -5,31 +5,34 @@ import {
     Vector3,
 } from 'three';
 
-// Must match the size of TreeConfig::floors in the shaders
-const MAX_FLOOR_COUNT = 5;
 // Must match the size of TreeFamilyConfig::presets in the shaders
 const MAX_PRESET_COUNT = 2;
 
-function createTreeFloorConfig() {
-    return {
-        color: new Vector3(0.0, 0.0, 0.0),
-        height: 0.0,
-        bottomRadius: 0.0,
-        topRadius: 0.0,
-        offset: 0.0,
-    }
-}
-
 function createTreeConfig() {
     return {
-        floors: Array.from({ length: MAX_PRESET_COUNT }, createTreeFloorConfig),
+        crownFloorCount: 0,
+        height: 0.0,
+        crownRandomness: 0.0,
+        crownBaseRadius: 0.0,
+        crownShrinkFactor: 0.0,
+        trunkHeight: 0.0,
+        trunkRadius: 0.0,
+        trunkRadiusRandomness: 0.0,
+        trunkColor: new Vector3(0.0, 0.0, 0.0),
+        crownColors: [
+            new Vector3(0.0, 0.0, 0.0),
+            new Vector3(0.0, 0.0, 0.0),
+            new Vector3(0.0, 0.0, 0.0),
+            new Vector3(0.0, 0.0, 0.0),
+        ],
+        bend: new Vector3(0.0, 0.0, 0.0),
+        overshoot: 0.0,
     }
 }
 
 export class TreeMaterial extends MeshStandardMaterial {
     uniforms = {
         time: { value: 0.0 },
-        noiseLevel: { value: 0.1 },
     };
     uniformsGroups = [];
 
@@ -69,9 +72,9 @@ export class TreeMaterial extends MeshStandardMaterial {
                     {
                         crownFloorCount: 8,
                         height: 5.0,
-                        crownRandomness: 0.2,
+                        crownRandomness: 0.1,
                         crownBaseRadius: 1.0,
-                        crownShrinkFactor: 0.8,
+                        crownShrinkFactor: 0.6,
                         trunkHeight: 1.0,
                         trunkRadius: 0.35,
                         trunkRadiusRandomness: 0.0,
@@ -82,12 +85,13 @@ export class TreeMaterial extends MeshStandardMaterial {
                             new Vector3(0.6, 0.9, 1.0),
                             new Vector3(0.6, 0.9, 1.0),
                         ],
-                        bend: new Vector3(1.0, 0.0, 0.0),
+                        bend: new Vector3(0.0, 0.0, 0.0),
+                        overshoot: 1.1,
                     },
                     {
                         crownFloorCount: 4,
                         height: 4.0,
-                        crownRandomness: 0.2,
+                        crownRandomness: 0.1,
                         crownBaseRadius: 1.0,
                         crownShrinkFactor: 0.3,
                         trunkHeight: 2.0,
@@ -100,7 +104,8 @@ export class TreeMaterial extends MeshStandardMaterial {
                             new Vector3(0.6, 0.9, 1.0),
                             new Vector3(0.6, 0.9, 1.0),
                         ],
-                        bend: new Vector3(1.0, 0.0, 0.0),
+                        bend: new Vector3(0.2, 0.0, 0.0),
+                        overshoot: 1.1,
                     }
                 ],
                 presetCount: 2,
@@ -120,6 +125,7 @@ export class TreeMaterial extends MeshStandardMaterial {
             const injectAfterCommon = document.getElementById('injectAfterCommon').textContent;
             const injectAfterBeginVertex = document.getElementById('injectAfterBeginVertex').textContent;
             const injectAfterColorVertex = document.getElementById('injectAfterColorVertex').textContent;
+            const injectAfterBeginNormal = document.getElementById('injectAfterBeginNormal').textContent;
 
             shader.vertexShader = shader.vertexShader
                 .replace(
@@ -138,6 +144,12 @@ export class TreeMaterial extends MeshStandardMaterial {
                     `#include <begin_vertex>`,
                     `#include <begin_vertex>
                     ${injectAfterBeginVertex}
+                    `
+                )
+                .replace(
+                    `#include <beginnormal_vertex>`,
+                    `#include <beginnormal_vertex>
+                    ${injectAfterBeginNormal}
                     `
                 );
 
