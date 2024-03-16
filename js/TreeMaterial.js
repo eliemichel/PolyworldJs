@@ -67,84 +67,48 @@ export class TreeMaterial extends MeshStandardMaterial {
             value: {
                 presets: [
                     {
-                        floors: [
-                            {
-                                color: new Vector3(1.0, 0.5, 0.0),
-                                height: 1.0,
-                                bottomRadius: 0.4,
-                                topRadius: 0.3,
-                            },
-                            {
-                                color: new Vector3(0.0, 0.6, 0.8),
-                                height: 0.8 * 1.5,
-                                bottomRadius: 1.0,
-                                topRadius: 0.5,
-                            },
-                            {
-                                color: new Vector3(0.2, 0.8, 0.9),
-                                height: 0.7 * 1.5,
-                                bottomRadius: 0.8,
-                                topRadius: 0.3,
-                            },
-                            {
-                                color: new Vector3(0.6, 0.9, 1.0),
-                                height: 0.6 * 1.5,
-                                bottomRadius: 0.5,
-                                topRadius: 0.05,
-                            },
-                        ]
+                        crownFloorCount: 8,
+                        height: 5.0,
+                        crownRandomness: 0.2,
+                        crownBaseRadius: 1.0,
+                        crownShrinkFactor: 0.8,
+                        trunkHeight: 1.0,
+                        trunkRadius: 0.35,
+                        trunkRadiusRandomness: 0.0,
+                        trunkColor: new Vector3(1.0, 0.5, 0.0),
+                        crownColors: [
+                            new Vector3(0.0, 0.6, 0.8),
+                            new Vector3(0.2, 0.8, 0.9),
+                            new Vector3(0.6, 0.9, 1.0),
+                            new Vector3(0.6, 0.9, 1.0),
+                        ],
+                        bend: new Vector3(1.0, 0.0, 0.0),
                     },
                     {
-                        floors: [
-                            {
-                                color: new Vector3(1.0, 0.5, 0.0),
-                                height: 2.0,
-                                bottomRadius: 0.15,
-                                topRadius: 0.1,
-                            },
-                            {
-                                color: new Vector3(0.0, 0.6, 0.8),
-                                height: 0.8,
-                                bottomRadius: 1.0,
-                                topRadius: 0.5,
-                            },
-                            {
-                                color: new Vector3(0.2, 0.8, 0.9),
-                                height: 0.7,
-                                bottomRadius: 0.8,
-                                topRadius: 0.3,
-                            },
-                            {
-                                color: new Vector3(0.6, 0.9, 1.0),
-                                height: 0.6,
-                                bottomRadius: 0.5,
-                                topRadius: 0.05,
-                            },
-                            {
-                                color: new Vector3(0.6, 0.9, 1.0),
-                                height: 0.6,
-                                bottomRadius: 0.5,
-                                topRadius: 0.05,
-                            },
-                        ]
+                        crownFloorCount: 4,
+                        height: 4.0,
+                        crownRandomness: 0.2,
+                        crownBaseRadius: 1.0,
+                        crownShrinkFactor: 0.3,
+                        trunkHeight: 2.0,
+                        trunkRadius: 0.125,
+                        trunkRadiusRandomness: 0.0,
+                        trunkColor: new Vector3(1.0, 0.5, 0.0),
+                        crownColors: [
+                            new Vector3(0.0, 0.6, 0.8),
+                            new Vector3(0.2, 0.8, 0.9),
+                            new Vector3(0.6, 0.9, 1.0),
+                            new Vector3(0.6, 0.9, 1.0),
+                        ],
+                        bend: new Vector3(1.0, 0.0, 0.0),
                     }
                 ],
-                presetCount: 1,
+                presetCount: 2,
             }
         };
 
         while (this.uniforms.treeFamilyConfig.value.presets.length < MAX_PRESET_COUNT) {
             this.uniforms.treeFamilyConfig.value.presets.push(createTreeConfig());
-        }
-        for (const preset of this.uniforms.treeFamilyConfig.value.presets) {
-            while (preset.floors.length < MAX_FLOOR_COUNT) {
-                preset.floors.push(createTreeFloorConfig());
-            }
-            let offset = 0;
-            for (const fl of preset.floors) {
-                fl.offset = offset;
-                offset += fl.height - this.uniforms.noiseLevel.value;
-            }
         }
 
         this.onBeforeCompile = (shader) => {

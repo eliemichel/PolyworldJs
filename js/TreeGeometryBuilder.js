@@ -7,31 +7,13 @@ import {
 export class TreeGeometryBuilder {
     constructor(params) {
         this.params = {
-            floors: [
-                {
-                    sideCount: 6,
-                },
-                {
-                    sideCount: 6,
-                },
-                {
-                    sideCount: 6,
-                },
-                {
-                    sideCount: 6,
-                },
-                {
-                    sideCount: 6,
-                },
-            ],
+            sideCount: 6,
+            floorCount: 10,
             ...params
         };
     }
 
-    getFloorCounts(floor) {
-        const {
-            sideCount,
-        } = floor;
+    getCountsPerFloor(sideCount) {
         const quads = sideCount; // sides
         const tris = 2 * sideCount; // top, down
         const corners = 6 * quads + 3 * tris;
@@ -40,22 +22,17 @@ export class TreeGeometryBuilder {
 
     getCounts() {
         const {
-            floors,
+            sideCount,
+            floorCount,
         } = this.params;
-        const counts = {
-            corners: 0,
+        const floorCounts = this.getCountsPerFloor(sideCount);
+        return {
+            corners: floorCounts.corners * floorCount,
         };
-        for (const f of floors) {
-            const floorCounts = this.getFloorCounts(f);
-            counts.corners += floorCounts.corners;
-        }
-        return counts;
     }
 
-    fillFloorAttributes(floor, buffers, context) {
-        const {
-            sideCount,
-        } = floor;
+    // A floor is simply a cylinder
+    fillFloorAttributes(sideCount, buffers, context) {
 
         let c = context.offset;
 
@@ -108,7 +85,7 @@ export class TreeGeometryBuilder {
             }
         }
 
-        console.assert(c - context.offset == this.getFloorCounts(floor).corners);
+        console.assert(c - context.offset == this.getCountsPerFloor(sideCount).corners);
         return {
             offset: c,
         };
@@ -116,15 +93,16 @@ export class TreeGeometryBuilder {
 
     fillAttributes(buffers) {
         const {
-            floors,
+            floorCount,
+            sideCount,
         } = this.params;
         let ctx = {
             offset: 0,
         };
         let floorIndex = 0;
-        for (const f of floors) {
+        for (let i = 0 ; i < floorCount ; ++i) {
             const prevOffset = ctx.offset;
-            ctx = this.fillFloorAttributes(f, buffers, ctx);
+            ctx = this.fillFloorAttributes(sideCount, buffers, ctx);
             buffers.floorIndex.fill(floorIndex, prevOffset, ctx.offset);
             ++floorIndex;
         }

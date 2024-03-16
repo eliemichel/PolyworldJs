@@ -9,22 +9,21 @@
 	<body>
 		<script id="injectAfterCommon" type="x-shader/x-vertex">
 
-			
-			struct TreeFloorConfig {
-                vec3 color;
-				float height;
-                float bottomRadius;
-                float topRadius;
-
-                // Sum of all previous floor's height
-				float offset;
-			};
-
 			/**
 			 * A tree is composed of a stacking of "floors" (either trunk or foilage elements)
 			 */
 			struct TreeConfig {
-				TreeFloorConfig floors[5];
+				uint crownFloorCount;
+				float height;
+				float crownRandomness;
+				float crownBaseRadius;
+				float crownShrinkFactor;
+				float trunkHeight;
+				float trunkRadius;
+				float trunkRandomness;
+				vec3 trunkColor;
+				vec3 crownColors[4];
+				vec3 bend;
 			};
 
 			/**
@@ -35,14 +34,77 @@
 				uint presetCount;
 			};
 
-			TreeFloorConfig mixTreeFloorConfig(TreeFloorConfig a, TreeFloorConfig b, float fac) {
-				return TreeFloorConfig(
-					mix(a.color, b.color, fac),
+			TreeConfig mixTreeConfig(TreeConfig a, TreeConfig b, float fac) {
+				return TreeConfig(
+					uint(mix(float(a.crownFloorCount), float(b.crownFloorCount), fac)),
 					mix(a.height, b.height, fac),
-					mix(a.bottomRadius, b.bottomRadius, fac),
-					mix(a.topRadius, b.topRadius, fac),
-					mix(a.offset, b.offset, fac)
+					mix(a.crownRandomness, b.crownRandomness, fac),
+					mix(a.crownBaseRadius, b.crownBaseRadius, fac),
+					mix(a.crownShrinkFactor, b.crownShrinkFactor, fac),
+					mix(a.trunkHeight, b.trunkHeight, fac),
+					mix(a.trunkRadius, b.trunkRadius, fac),
+					mix(a.trunkRandomness, b.trunkRandomness, fac),
+					mix(a.trunkColor, b.trunkColor, vec3(fac)),
+					vec3[4](
+						mix(a.crownColors[0], b.crownColors[0], vec3(fac)),
+						mix(a.crownColors[1], b.crownColors[1], vec3(fac)),
+						mix(a.crownColors[2], b.crownColors[2], vec3(fac)),
+						mix(a.crownColors[3], b.crownColors[3], vec3(fac))
+					),
+					mix(a.bend, b.bend, vec3(fac))
 				);
+			}
+
+			/**
+			 * Config for a given floor, extracted from the tree config and floor index
+			 */
+			 struct TreeFloorConfig {
+				vec3 color;
+				float height;
+				float bottomRadius;
+				float topRadius;
+				float randomness;
+
+				// Sum of all previous floor's height
+				float offset;
+			};
+
+			TreeFloorConfig getFloorConfig(TreeConfig config, uint floorIndex) {
+				bool isTrunk = floorIndex == 0u;
+				bool isHidden = floorIndex > config.crownFloorCount;
+				if (isTrunk) {
+					return TreeFloorConfig(
+						config.trunkColor,
+						config.trunkHeight,
+						config.trunkRadius,
+						config.trunkRadius,
+						config.trunkRandomness,
+						0.0
+					);
+				} else if (!isHidden) {
+					uint crownIndex = floorIndex - 1u;
+					float crownBottomFac = float(crownIndex) / float(config.crownFloorCount);
+					float crownTopFac = float(crownIndex + 1u) / float(config.crownFloorCount);
+					uint colorIndex = uint(crownBottomFac * 4.0);
+					float crownHeight = config.height - config.trunkHeight;
+					return TreeFloorConfig(
+						config.crownColors[colorIndex],
+						crownHeight / float(config.crownFloorCount),
+						mix(config.crownBaseRadius, 0.0, crownBottomFac),
+						mix(config.crownBaseRadius, 0.0, crownTopFac) * config.crownShrinkFactor,
+						config.crownRandomness,
+						config.trunkHeight + crownBottomFac * crownHeight
+					);
+				} else {
+					return TreeFloorConfig(
+						vec3(0.0),
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					);
+				}
 			}
 
 			uniform float time;
@@ -64,10 +126,12 @@
 
 		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
 
-			TreeFloorConfig floorConfigA = treeFamilyConfig.presets[0].floors[floorIndex];
-			TreeFloorConfig floorConfigB = treeFamilyConfig.presets[1].floors[floorIndex];
+			TreeConfig configA = treeFamilyConfig.presets[0];
+			TreeConfig configB = treeFamilyConfig.presets[1];
 			float instanceFac = (float(gl_InstanceID) + 0.5) / float(10);
-			TreeFloorConfig floorConfig = mixTreeFloorConfig(floorConfigA, floorConfigB, instanceFac);
+			TreeConfig config = mixTreeConfig(configA, configB, instanceFac);
+
+			TreeFloorConfig floorConfig = getFloorConfig(config, floorIndex);
 
 			vColor.rgb = floorConfig.color;
 			vColor *= mix(1.0, 0.5, position.y);
