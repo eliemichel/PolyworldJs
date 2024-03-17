@@ -214,7 +214,7 @@
 				float fac = x - floor(x);
 				float amp = rand(vec2(cell, seed)) - 0.2;
 				float nextAmp = rand(vec2(nextCell, seed)) - 0.2;
-				return 0.1 * mix(amp, nextAmp, smoothstep(0.0, 1.0, fac));
+				return mix(amp, nextAmp, smoothstep(0.0, 1.0, fac));
 			}
 			
 			/* ***** INPUTS ***** */
@@ -222,6 +222,10 @@
 			uniform float time;
 			uniform uint instanceCount;
 			uniform TreeFamilyConfig treeFamilyConfig;
+			uniform float windAmplitude;
+			uniform float windDirectionAngle;
+			uniform float windInverseSpeed;
+			uniform float windTurbulence;
 
 			attribute float radius;
 			attribute vec2 height;
@@ -257,9 +261,8 @@
 			mat2 instanceRotation = rotate2(6.28 * rand(vec2(float(gl_InstanceID) * 0.01, 0.5)));
 			mat2 bendRotation = rotate2(6.28 * rand(vec2(float(gl_InstanceID) * 0.01, 0.4)));
 
-			float windDirectionAngle = 0.5;
 			vec2 windDirection = vec2(cos(windDirectionAngle), sin(windDirectionAngle));
-			float windMagnitude = computeWind(0.4 * time - 0.1 * dot(windDirection, instancePosition.xz));
+			float windMagnitude = windAmplitude * computeWind(windTurbulence * time - windInverseSpeed * dot(windDirection, instancePosition.xz));
 			vec2 wind = windMagnitude * windDirection;
 
 			mat4 bendMatrix = mat4(1.0);
@@ -326,7 +329,8 @@
 		{
 			"imports": {
 				"three": "./third_party/three.module.min.js",
-				"three/addons/": "./third_party/three/addons/"
+				"three/addons/": "./third_party/three/addons/",
+				"lil-gui": "./third_party/lil-gui.esm.js"
 			}
 		}
 		</script>

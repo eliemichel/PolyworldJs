@@ -32,6 +32,10 @@ export class TreeMaterial extends MeshStandardMaterial {
     uniforms = {
         time: { value: 0.0 },
         instanceCount: { value: 10 },
+        windAmplitude: { value: 0.1 },
+        windDirectionAngle: { value: 0.1 },
+        windInverseSpeed: { value: 0.1 },
+        windTurbulence: { value: 0.5 },
     };
     uniformsGroups = [];
 
