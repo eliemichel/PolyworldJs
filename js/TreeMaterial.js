@@ -1,12 +1,10 @@
 import {
     MeshStandardMaterial,
-    UniformsGroup,
-    Uniform,
     Vector3,
 } from 'three';
 
 // Must match the size of TreeFamilyConfig::presets in the shaders
-const MAX_PRESET_COUNT = 2;
+const MAX_PRESET_COUNT = 3;
 
 function createTreeConfig() {
     return {
@@ -40,33 +38,6 @@ export class TreeMaterial extends MeshStandardMaterial {
     constructor(opts) {
         super(opts);
 
-        const floors = [
-            (() => {
-                const floorConfig = new UniformsGroup();
-                floorConfig.setName("TreeFloorConfig");
-                floorConfig.add( new Uniform( new Vector3(1.0, 0.0, 0.5) ) ); // color
-                floorConfig.add( new Uniform(  ) ); // height
-                floorConfig.add( new Uniform(  ) ); // bottomRadius
-                floorConfig.add( new Uniform(  ) ); // topRadius
-                floorConfig.add( new Uniform(  ) ); // offset
-                return floorConfig;
-            })(),
-        ];
-
-        const presets = [
-            (() => {
-                const treeConfig = new UniformsGroup();
-                treeConfig.setName("TreeConfig");
-                treeConfig.add( new Uniform( floors ) );
-                return treeConfig;
-            })(),
-        ];
-
-        const treeFamilyConfig = new UniformsGroup();
-        treeFamilyConfig.setName( "TreeFamilyConfig" );
-        treeFamilyConfig.add( new Uniform( presets ) );
-        treeFamilyConfig.add( new Uniform( 1 ) ); // presetCount
-
         this.uniforms.treeFamilyConfig = {
             value: {
                 presets: [
@@ -91,11 +62,11 @@ export class TreeMaterial extends MeshStandardMaterial {
                     },
                     {
                         crownFloorCount: 4,
-                        height: 4.0,
+                        height: 6.0,
                         crownRandomness: 0.1,
-                        crownBaseRadius: 1.0,
+                        crownBaseRadius: 1.5,
                         crownShrinkFactor: 0.3,
-                        trunkHeight: 2.0,
+                        trunkHeight: 4.0,
                         trunkRadius: 0.125,
                         trunkRadiusRandomness: 0.0,
                         trunkColor: new Vector3(1.0, 0.5, 0.0),
@@ -106,6 +77,25 @@ export class TreeMaterial extends MeshStandardMaterial {
                             new Vector3(0.6, 0.9, 1.0),
                         ],
                         bend: new Vector3(0.2, 0.0, 0.0),
+                        overshoot: 1.1,
+                    },
+                    {
+                        crownFloorCount: 9,
+                        height: 8.0,
+                        crownRandomness: 0.1,
+                        crownBaseRadius: 1.5,
+                        crownShrinkFactor: 0.3,
+                        trunkHeight: 2.0,
+                        trunkRadius: 0.3,
+                        trunkRadiusRandomness: 0.1,
+                        trunkColor: new Vector3(1.0, 0.5, 0.0),
+                        crownColors: [
+                            new Vector3(0.0, 0.6, 0.8),
+                            new Vector3(0.2, 0.8, 0.9),
+                            new Vector3(0.6, 0.9, 1.0),
+                            new Vector3(0.6, 0.9, 1.0),
+                        ],
+                        bend: new Vector3(0.0, 0.0, 0.0),
                         overshoot: 1.1,
                     }
                 ],

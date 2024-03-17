@@ -6,11 +6,13 @@ import {
     Box3,
 } from 'three';
 
+const MAX_FLOOR_COUNT = 10;
+
 export class TreeGeometryBuilder {
     constructor(params) {
         this.params = {
             sideCount: 6,
-            floorCount: 10,
+            floorCount: MAX_FLOOR_COUNT,
             ...params
         };
     }

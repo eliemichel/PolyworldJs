@@ -73,8 +73,9 @@ function createTreePositions(ringCount, spacing, randomness, seed) {
 }
 const builder = new TreeGeometryBuilder();
 const treeGeo = builder.createGeometry();
-const treePositions = createTreePositions(5, 2.5, 0.4);
+const treePositions = createTreePositions(10, 2.5, 0.4);
 treeGeo.instanceCount = (treePositions.length / 3) | 0;
+console.log("Tree count: ", treeGeo.instanceCount);
 treeGeo.setAttribute( 'instancePosition', new InstancedBufferAttribute( treePositions, 3 ) );
 builder.computeBounds(treeGeo, treePositions);
 const treeMat = new TreeMaterial();

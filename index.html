@@ -57,7 +57,7 @@
 			 */
 			struct TreeFamilyConfig {
 				// Each tree is an interpolation of preset trees
-				TreeConfig presets[2];
+				TreeConfig presets[3];
 				uint presetCount;
 			};
 
@@ -204,6 +204,18 @@
 				);
 			}
 
+			float computeWind(float time) {
+				float seed = 0.1341;
+				float x = 1.0 * time;
+
+				//return 0.2 * sin(time);
+				float cell = floor(x) * 0.01;
+				float nextCell = floor(x + 1.0) * 0.01;
+				float fac = x - floor(x);
+				float amp = rand(vec2(cell, seed)) - 0.2;
+				float nextAmp = rand(vec2(nextCell, seed)) - 0.2;
+				return 0.1 * mix(amp, nextAmp, smoothstep(0.0, 1.0, fac));
+			}
 			
 			/* ***** INPUTS ***** */
 
@@ -226,18 +238,39 @@
 
 			TreeConfig configA = treeFamilyConfig.presets[0];
 			TreeConfig configB = treeFamilyConfig.presets[1];
-			float instanceFac = (float(gl_InstanceID) + 0.5) / float(instanceCount);
-			TreeConfig config = mixTreeConfig(configA, configB, instanceFac);
+			TreeConfig configC = treeFamilyConfig.presets[2];
+			TreeConfig config = configA;
+			if (treeFamilyConfig.presetCount > 1u) {
+				float facSum = rand(vec2(float(gl_InstanceID) * 0.01, 0.0));
+				float fac = rand(vec2(float(gl_InstanceID) * 0.01, 0.1));
+				facSum += fac;
+				config = mixTreeConfig(config, configB, fac / facSum);
+				if (treeFamilyConfig.presetCount > 2u) {
+					float fac = rand(vec2(float(gl_InstanceID) * 0.01, 0.1));
+					facSum += fac;
+					config = mixTreeConfig(config, configC, fac / facSum);
+				}
+			}
 
 			TreeFloorConfig floorConfig = getFloorConfig(config, floorIndex);
 
 			mat2 instanceRotation = rotate2(6.28 * rand(vec2(float(gl_InstanceID) * 0.01, 0.5)));
+			mat2 bendRotation = rotate2(6.28 * rand(vec2(float(gl_InstanceID) * 0.01, 0.4)));
+
+			float windDirectionAngle = 0.5;
+			vec2 windDirection = vec2(cos(windDirectionAngle), sin(windDirectionAngle));
+			float windMagnitude = computeWind(0.4 * time - 0.1 * dot(windDirection, instancePosition.xz));
+			vec2 wind = windMagnitude * windDirection;
 
 			mat4 bendMatrix = mat4(1.0);
 			if (floorIndex > 0u) {
+				vec3 bend = config.bend;
+				bend.xz = bendRotation * bend.xz;
+				bend.xz += wind;
+
 				float crownHeight = config.height - config.trunkHeight;
 				float crownFloorHeight = crownHeight / float(config.crownFloorCount);
-				bendMatrix = computeBendMatrix(floorIndex - 1u, config.bend, crownFloorHeight);
+				bendMatrix = computeBendMatrix(floorIndex - 1u, bend, crownFloorHeight);
 				bendMatrix[3].y += config.trunkHeight;
 			}
 
