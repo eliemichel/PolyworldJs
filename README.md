@@ -3,6 +3,7 @@ PolyworldJS
 
 ![Screenshot 01](doc/screenshot01.png)
 ![Screenshot 02](doc/screenshot02.png)
+![Screenshot 03](doc/screenshot03.png)
 
 This is a ThreeJS reboot of the [Polyworld](https://polyworld.exppad.com/) Blender add-on, that intends to ue instancing as much as possible to enable real-time variations of entire forests.
 

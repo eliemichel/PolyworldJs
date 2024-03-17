@@ -33,6 +33,7 @@ function createTreeConfig() {
 export class TreeMaterial extends MeshStandardMaterial {
     uniforms = {
         time: { value: 0.0 },
+        instanceCount: { value: 10 },
     };
     uniformsGroups = [];
 

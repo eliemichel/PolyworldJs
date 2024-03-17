@@ -2,6 +2,8 @@ import {
     InstancedBufferGeometry,
     BufferAttribute,
     Uint32BufferAttribute,
+    Vector3,
+    Box3,
 } from 'three';
 
 export class TreeGeometryBuilder {
@@ -128,5 +130,40 @@ export class TreeGeometryBuilder {
         geometry.setAttribute( 'normal', new BufferAttribute( vertexData.normal, 3 ) );
         geometry.setAttribute( 'floorIndex', new Uint32BufferAttribute( vertexData.floorIndex, 1 ) );
         return geometry;
+    }
+
+    /**
+     * Compute box and sphere bounds of treeGeo, given a list of instance positions.
+     * @param {InstancedBufferGeometry} treeGeo 
+     * @param {Float32Array} treePositions 
+     */
+    computeBounds(treeGeo, treePositions) {
+        console.assert(treePositions.length == 3 * treeGeo.instanceCount);
+
+        // Box
+        treeGeo.computeBoundingBox();
+        const instancePositionBBox = new Box3();
+        const point = new Vector3();
+        for (let i = 0 ; i < treeGeo.instanceCount ; ++i) {
+            point.set(
+                treePositions[3 * i + 0],
+                treePositions[3 * i + 1],
+                treePositions[3 * i + 2],
+            );
+            if (i == 0) {
+                instancePositionBBox.min.copy( point );
+                instancePositionBBox.max.copy( point );
+            } else {
+                instancePositionBBox.expandByPoint( point );
+            }
+        }
+        treeGeo.boundingBox.min.sub( instancePositionBBox.min );
+        treeGeo.boundingBox.max.add( instancePositionBBox.max );
+
+        // Sphere
+        treeGeo.computeBoundingSphere();
+        const baseRadius = treeGeo.boundingSphere.radius;
+        instancePositionBBox.getBoundingSphere(treeGeo.boundingSphere);
+        treeGeo.boundingSphere.radius += baseRadius;
     }
 }

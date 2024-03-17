@@ -56,10 +56,14 @@
 			 * Trees from a family are all the possible interpolations between 'presetCount' different presets.
 			 */
 			struct TreeFamilyConfig {
+				// Each tree is an interpolation of preset trees
 				TreeConfig presets[2];
 				uint presetCount;
 			};
 
+			/**
+			 * Linearly blend the properties of two trees
+			 */
 			TreeConfig mixTreeConfig(TreeConfig a, TreeConfig b, float fac) {
 				return TreeConfig(
 					uint(mix(float(a.crownFloorCount), float(b.crownFloorCount), fac)),
@@ -134,13 +138,6 @@
 				}
 			}
 
-			uniform float time;
-			uniform TreeFamilyConfig treeFamilyConfig;
-
-			attribute float radius;
-			attribute vec2 height;
-			attribute uint floorIndex;
-
 			float rand31(vec3 seed1, float seed2) {
 				return rand(vec2(
 					rand(seed1.xy),
@@ -207,13 +204,29 @@
 				);
 			}
 
+			
+			/* ***** INPUTS ***** */
+
+			uniform float time;
+			uniform uint instanceCount;
+			uniform TreeFamilyConfig treeFamilyConfig;
+
+			attribute float radius;
+			attribute vec2 height;
+			attribute uint floorIndex;
+
+			// Instance attributes
+			attribute vec3 instancePosition;
+
 		</script>
 
 		<script id="injectAfterColorVertex" type="x-shader/x-vertex">
 
+			/* ***** Tree/Floor Config ***** */
+
 			TreeConfig configA = treeFamilyConfig.presets[0];
 			TreeConfig configB = treeFamilyConfig.presets[1];
-			float instanceFac = (float(gl_InstanceID) + 0.5) / float(10);
+			float instanceFac = (float(gl_InstanceID) + 0.5) / float(instanceCount);
 			TreeConfig config = mixTreeConfig(configA, configB, instanceFac);
 
 			TreeFloorConfig floorConfig = getFloorConfig(config, floorIndex);
@@ -227,6 +240,8 @@
 				bendMatrix = computeBendMatrix(floorIndex - 1u, config.bend, crownFloorHeight);
 				bendMatrix[3].y += config.trunkHeight;
 			}
+
+			/* ***** Color ***** */
 
 			vColor.rgb = floorConfig.color;
 			vColor *= mix(1.0, 0.5, position.y);
@@ -250,12 +265,14 @@
 				rand31(transformed.xyz + vec3(float(gl_InstanceID) * 0.1, floorConfig.offset, 0.0), 2.5 / 3.0)
 			) - 0.5;
 
+			// Pre-bend instance rotation
+			transformed.xz = instanceRotation * transformed.xz;
+
 			// Bend + vertical offset
 			transformed = (bendMatrix * vec4(transformed, 1.0)).xyz;
 
 			// Instance transformation
-			transformed.xz = instanceRotation * transformed.xz;
-			transformed.x += float(gl_InstanceID) * 3.0;
+			transformed.xyz += instancePosition;
 
 			// Noise
 			transformed.xyz += normalize(offset) * floorConfig.randomness * radius;
@@ -264,11 +281,11 @@
 
 		<script id="injectAfterBeginNormal" type="x-shader/x-vertex">
 
+			// Pre-bend instance rotation
+			objectNormal.xz = instanceRotation * objectNormal.xz;
+
 			// Bend
 			objectNormal = mat3(bendMatrix) * objectNormal;
-
-			// Instance transformation
-			objectNormal.xz = instanceRotation * objectNormal.xz;
 
 		</script>
 
